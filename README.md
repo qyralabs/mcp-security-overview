@@ -1,6 +1,6 @@
 # MCP Security Overview
 
-[![Demo Video](https://img.youtube.com/vi/rflKT2J4Inw/maxresdefault.jpg)](https://youtu.be/rflKT2J4Inw)
+[![Demo Video](assets/social-preview.jpg)](https://youtu.be/rflKT2J4Inw)
 
 > 🎬 **[Watch the Dashboard Demo](https://youtu.be/rflKT2J4Inw)**
 
