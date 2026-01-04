@@ -1,8 +1,13 @@
 # MCP Security Overview
 
+[![Demo Video](https://img.youtube.com/vi/rflKT2J4Inw/maxresdefault.jpg)](https://youtu.be/rflKT2J4Inw)
+
+> 🎬 **[Watch the Dashboard Demo](https://youtu.be/rflKT2J4Inw)**
+
+---
+
 This repository provides a high-level overview of security considerations,
 architecture principles, and design intent for MCP and LLM-based systems.
-
 It is intentionally non-executable and does not contain production code,
 algorithms, or implementation details.
 
@@ -52,3 +57,10 @@ It is not designed as a tutorial or SDK.
 
 This document reflects ongoing work.
 Details may evolve as real-world constraints and learnings emerge.
+
+---
+
+## Learn More
+
+- 🌐 Website: [qyralabs.com](https://qyralabs.com)
+- 📧 Contact: contact@qyralabs.com
