@@ -400,15 +400,6 @@ The patterns described here represent approaches validated in production environ
 
 ---
 
-## References
-
-- Model Context Protocol (MCP) specification
-- OWASP Top 10 for LLM Applications
-- NIST AI Risk Management Framework
-- MITRE ATLAS (Adversarial Threat Landscape for AI Systems)
-
----
-
 ## About This Document
 
 This document is maintained by QYRA Labs as part of our security research efforts.
