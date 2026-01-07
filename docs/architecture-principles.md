@@ -4,7 +4,7 @@
 
 Securing AI agents that interact with production systems requires architectural decisions that differ from traditional application security.
 
-This document outlines design principles derived from production deployments.
+This document outlines core principles derived from production deployments.
 
 ---
 
@@ -12,20 +12,14 @@ This document outlines design principles derived from production deployments.
 
 ### 1. Layered Defense
 
-Combine multiple security controls operating at different abstraction levels.
+Security for AI agents requires multiple independent controls operating at different levels.
 
-**Deterministic Layer:**
-- Fast pattern matching
-- Schema validation
-- Rate limiting
-- Path sanitization
+Single-layer approaches are insufficient because:
+- Fast checks miss sophisticated attacks
+- Slow analysis cannot handle all traffic
+- Different attack types require different detection methods
 
-**Semantic Layer:**
-- Intent analysis
-- Context evaluation
-- Behavioral scoring
-
-**Rationale:** Single-layer approaches miss either speed or accuracy. Layering provides both.
+**Implication:** Combine complementary security controls.
 
 ---
 
@@ -33,21 +27,21 @@ Combine multiple security controls operating at different abstraction levels.
 
 When uncertainty exists, default to blocking rather than allowing.
 
-**Examples:**
-- Unrecognized tool → Block
-- Ambiguous intent → Escalate
-- Analysis timeout → Block
-- Service unavailable → Block
+**Examples of uncertainty:**
+- Unrecognized tool invocation
+- Ambiguous intent
+- Analysis timeout
+- Service unavailable
 
 **Rationale:** In security contexts, false negatives are more costly than false positives.
 
 ---
 
-### 3. Explicit Human Approval for Destructive Operations
+### 3. Explicit Human Approval for High-Risk Operations
 
 Certain operations should never be fully automated, regardless of confidence scores.
 
-**Examples:**
+**Categories requiring approval:**
 - Data deletion
 - Bulk modifications
 - Privilege changes
@@ -62,22 +56,22 @@ Certain operations should never be fully automated, regardless of confidence sco
 Every security decision must be:
 - Logged with full context
 - Auditable
-- Traceable to specific rules or models
+- Traceable to specific rules or analysis
 - Reviewable by humans
 
-**Rationale:** Post-incident analysis requires complete decision history.
+**Rationale:** Post-incident analysis and compliance require complete decision history.
 
 ---
 
 ### 5. Principle of Least Privilege
 
-Tools should have minimal necessary permissions.
+Tools and agents should have minimal necessary permissions.
 
 **Implementation considerations:**
 - Tool-level access control
 - Per-session credential scoping
 - Time-limited permissions
-- Read-only defaults
+- Read-only defaults where possible
 
 **Rationale:** Limits blast radius of successful attacks.
 
@@ -87,12 +81,10 @@ Tools should have minimal necessary permissions.
 
 No single control should be relied upon exclusively.
 
-**Example layers:**
-- Input validation
-- Intent analysis
-- Tool access control
-- Network egress filtering
-- Output sanitization
+**Multiple independent layers prevent:**
+- Single point of failure
+- Bypass via one vulnerability
+- Complete system compromise from partial breach
 
 **Rationale:** Attackers will find ways around individual controls.
 
@@ -112,158 +104,17 @@ Security analysis should be decoupled from enforcement mechanisms.
 
 ---
 
-## Reference Architecture
-
-QYRA Labs' commercial implementation uses a dual-layer architecture validated in production environments.
-
-### Layer 1: Deterministic Controls
-
-Fast, rule-based checks that catch known attack patterns:
-
-- **Pattern Matching** - Regex-based detection of injection attempts
-- **Schema Validation** - JSON Schema enforcement
-- **Rate Limiting** - Sliding window algorithm
-- **Path Validation** - Traversal prevention
-- **Tool Whitelisting** - Allowed tool enforcement
-
-**Decision:** ALLOW or BLOCK
-
-**Performance:** Sub-millisecond latency typical
-
-**Rationale:** Deterministic checks provide fast, reliable rejection of obvious attacks.
-
----
-
-### Layer 2: Semantic Analysis
-
-Probabilistic analysis for novel variants and edge cases.
-
-#### Vector-Based Similarity
-
-Attack patterns are embedded in a vector space. Incoming requests are compared against this database to detect semantically similar threats.
-
-- **Pattern database:** Thousands of documented attacks
-- **Coverage:** Majority AI-specific (prompt injection, jailbreaks), remainder traditional (SQLi, command injection)
-- **Performance:** Low single-digit millisecond latency
-
-**How it works:**
-1. Request is embedded into vector space
-2. Similarity search against known attack patterns
-3. Returns similarity score and matched patterns
-
-#### LLM-Based Intent Classification
-
-When vector similarity is inconclusive, LLM analysis provides additional signal.
-
-- **Use case:** Ambiguous requests, novel attack variants
-- **Deployment:** Multiple provider support (local/cloud)
-- **Privacy:** Local deployment option for regulated industries
-- **Performance:** Tens of milliseconds when triggered
-
-**How it works:**
-1. LLM analyzes request intent
-2. Classifies as benign or malicious
-3. Returns confidence score and reasoning
-
-#### Risk Scoring
-
-Layer 2 outputs a risk level based on combined signals:
-
-- **LOW** - Similarity score below threshold, no concerning patterns
-- **MEDIUM** - Moderate similarity or uncertain intent
-- **HIGH** - Strong similarity to known attacks or clear malicious intent
-
----
-
-### Decision Matrix
-
-Combines Layer 1 and Layer 2 results to make final decision:
-
-| Layer 1 | Layer 2 Risk | Destructive | Final Decision |
-|---------|--------------|-------------|----------------|
-| BLOCK   | any          | any         | **BLOCK** |
-| ALLOW   | LOW          | No          | **ALLOW** |
-| ALLOW   | MEDIUM       | No          | **MONITOR** |
-| ALLOW   | HIGH         | No          | **BLOCK** |
-| ALLOW   | any          | Yes         | **HUMAN_APPROVAL** |
-
-**Key principle:** Layer 1 BLOCK is authoritative. Layer 2 provides advisory signal.
-
----
-
-### Security Modules
-
-The system includes specialized modules for specific threat categories:
-
-1. **Session Management**
-   - IP/User-Agent binding
-   - Session hijacking detection
-   - Timeout enforcement
-
-2. **Network Policy**
-   - Egress/ingress filtering
-   - Domain whitelisting/blacklisting
-   - Data exfiltration prevention
-
-3. **Anomaly Detection**
-   - Rate spike detection
-   - Behavioral analysis
-   - Loop detection
-
-4. **Tool Integrity**
-   - Rug pull detection via hashing
-   - Tool definition verification
-   - Change detection
-
-5. **Typosquatting Detection**
-   - Name similarity checking
-   - Homoglyph detection
-   - Tool impersonation prevention
-
-6. **Destructive Operation Detection**
-   - DELETE/DROP/TRUNCATE identification
-   - Bulk operation flagging
-   - Requires human approval
-
-7. **Supply Chain Verification**
-   - Checksum validation
-   - Dependency integrity
-   - Version tracking
-
-8. **PII Sanitization**
-   - Credential detection (API keys, tokens)
-   - Personal information redaction
-   - Compliance support (GDPR, HIPAA)
-
----
-
-## Validation Approach
-
-The architecture has been validated against:
-- Large-scale attack datasets
-- Legitimate production traffic samples
-- Edge case scenarios
-
-**Key findings:**
-- Detection rates exceed industry targets
-- False positive rates remain within acceptable thresholds
-- Latency suitable for production deployment
-
-Detailed benchmarks available on request.
-
----
-
 ## Design Considerations
 
 ### Performance vs. Security Trade-offs
 
-Security controls add latency. Design must balance:
+Security controls add latency. Systems must balance:
 - Acceptable response time
 - Detection accuracy
 - False positive rate
 - Operational cost
 
-**Approach:** Use fast deterministic checks first, expensive semantic analysis selectively.
+**Approach:** Optimize for the critical path while maintaining security guarantees.
 
 ---
 
@@ -272,23 +123,21 @@ Security controls add latency. Design must balance:
 Analysis of requests may require processing sensitive data.
 
 **Considerations:**
-- Local vs. cloud-based analysis
+- Local vs. cloud-based processing
 - Data retention policies
 - Compliance requirements (GDPR, HIPAA, etc.)
-- Audit log encryption
+- Audit log encryption and access control
 
-**Approach:** Support both local and cloud deployment models. Local LLM option available for regulated industries.
+**Approach:** Support deployment models appropriate to regulatory context.
 
 ---
 
 ### Evolving Threat Landscape
 
-Attack patterns change rapidly.
-
-**Requirements:**
+Attack patterns change rapidly. Security systems must accommodate:
 - Update mechanisms for detection rules
 - Versioned pattern databases
-- A/B testing for new controls
+- Testing of new controls without production risk
 - Rollback capability
 
 **Approach:** Treat security logic as continuously deployed software.
@@ -303,9 +152,9 @@ Production systems often serve multiple organizations.
 - Per-tenant policy customization
 - Isolated rate limiting
 - Separate audit trails
-- Policy inheritance
+- Policy inheritance and override
 
-**Approach:** Tenant-aware architecture from foundation.
+**Approach:** Tenant-aware architecture from the foundation.
 
 ---
 
@@ -315,54 +164,64 @@ Production systems often serve multiple organizations.
 
 **Problem:** "Just tell the AI not to do bad things"
 
-**Reality:** Prompt injection bypasses instructions.
+**Reality:** Instructions can be bypassed via prompt injection.
+
+**Lesson:** Security must be enforced at the infrastructure level, not via prompts.
 
 ---
 
 ### Security as an Afterthought
 
-**Problem:** Adding security controls post-deployment
+**Problem:** Adding security controls after system design
 
-**Reality:** Architectural decisions constrain security capabilities.
+**Reality:** Fundamental architectural decisions constrain security capabilities.
+
+**Lesson:** Security requirements should inform architecture from the start.
 
 ---
 
-### Assuming Intent Equals Action
+### Assuming Intent Equals Safety
 
-**Problem:** "The AI meant well"
+**Problem:** "The AI didn't mean to cause harm"
 
-**Reality:** Intent analysis is probabilistic. Enforce controls regardless.
+**Reality:** Unintentional harm is still harm.
+
+**Lesson:** Enforce controls regardless of perceived intent.
 
 ---
 
 ### Treating AI as Deterministic
 
-**Problem:** Expecting consistent behavior
+**Problem:** Expecting consistent behavior across identical inputs
 
-**Reality:** Non-determinism requires statistical validation, not unit tests.
+**Reality:** LLM outputs are probabilistic and context-dependent.
+
+**Lesson:** Security validation requires statistical methods, not deterministic testing.
 
 ---
 
 ### Single-Layer Defense
 
-**Problem:** "Our LLM filter catches everything"
+**Problem:** Relying entirely on one security mechanism
 
-**Reality:** Adversarial examples will bypass single-layer defenses.
+**Reality:** All security controls have edge cases and failure modes.
+
+**Lesson:** Multiple independent layers are necessary.
 
 ---
 
 ## Implementation Notes
 
-This document describes principles and architectural patterns, not specific implementations.
+This document describes principles and architectural considerations, not specific implementations.
 
 Actual systems will vary based on:
 - Deployment environment
 - Risk tolerance
 - Regulatory requirements
 - Operational constraints
-- Scale requirements
+- Scale and performance requirements
 
-The patterns described here represent production-validated approaches, but are not prescriptive.
+The principles described here represent patterns observed across production deployments, but are not prescriptive.
 
 ---
 
